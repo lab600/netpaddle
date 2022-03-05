@@ -1,6 +1,6 @@
 # Net Paddle
 
-Play ping pong with a friend over network with your smart phones.
+Play ping pong with a friend over local network using either iOS or Android phones.
 
 ## Notes
 * Written in [Flutter](https://flutter.dev/), using [Flame 2D game engine](https://flame-engine.org/).
