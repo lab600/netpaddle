@@ -30,10 +30,12 @@ import 'constants.dart';
 class Ball extends PositionComponent with HasGameRef<PaddleGame> {
   static final log = Logger("Ball");
 
-  static const PAUSE_INTERVAL = 3.0; // pause in secs when a point is scored
-  static const NORM_RAD = 0.01;
-  static const NORM_SPEED = 0.3;
-  static const NORM_SPIN = 0.3;
+  static const pauseInterval = 3.0; // pause in secs when a point is scored
+
+  static const slowTimeFactor = 1.0; // 1 for normal speed, > 1 to slow
+  static const normRad = 0.01;
+  static const normSpeed = 0.3 /slowTimeFactor;
+  static const normSpin = 0.3 /slowTimeFactor;
 
   final _rand = Random();
 
@@ -47,20 +49,20 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
 
   DateTime get lastHitTime => _lastHitTime;
 
-  Ball({double gameWidth: 0, double gameHeight: 0}) : super() {
+  Ball({double gameWidth = 0, double gameHeight = 0}) : super() {
     _pxMap = PixelMapper(gameWidth: gameWidth, gameHeight: gameHeight);
     reset();
   }
 
   /// reset to a known position and vertical speed, horizontal speed 0.
-  void reset({double normVY: NORM_SPEED, double normX: .5, double normY: .5}) {
+  void reset({double normVY = normSpeed, double normX = .5, double normY = .5}) {
     scale = Vector2(1, 1);
     anchor = Anchor.center;
-    _pause = normVY <= 0 ? PAUSE_INTERVAL : 0.0;
+    _pause = normVY <= 0 ? pauseInterval : 0.0;
     _vx = 0.0;
     _vy = _pxMap.toDevHgt(normVY);
-    width = _pxMap.toDevHgt(2 * NORM_RAD);
-    height = _pxMap.toDevHgt(2 * NORM_RAD);
+    width = _pxMap.toDevHgt(2 * normRad);
+    height = _pxMap.toDevHgt(2 * normRad);
     position = _pxMap.toDevPos(normX, normY);
   }
 
@@ -70,7 +72,7 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
   double get pause => _pause;
   double get radius => height / 2;
   double randSpin(double padVX) =>
-      (padVX.sign + (_rand.nextDouble() - .5)) * NORM_SPIN * _pxMap.safeWidth;
+      (padVX.sign + (_rand.nextDouble() - .5)) * normSpin * _pxMap.safeWidth;
 
   /// update ball position given time elapsed and current velocity.
   /// detect if hitting against walls or paddles,
@@ -81,8 +83,10 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
     super.update(dt);
     if (gameRef.isOver || gameRef.isWaiting) return;
 
-    // let opponent update states in network game if ball going away from me
-    if (vy < 0 && !gameRef.isSingle) return;
+    // don't update ball if playing as net guest
+    if (gameRef.isGuest) {
+      return;
+    }
 
     if (_pause > 0) {
       // if we are in a paused state, reduce the count down by elapsed time
@@ -111,7 +115,7 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
       final now = clock.now();
       if (gameRef.myPad.touch(ballRect) && vy > 0) {
         _lastHitTime = now;
-        FlameAudio.play(POP_FILE);
+        FlameAudio.play(popFile);
         y = gameRef.myPad.y - gameRef.myPad.height / 2 - 2 * radius;
         _vy = -vy;
         _vx += randSpin(gameRef.myPad.vx.sign);
@@ -119,30 +123,26 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
       } else if (y + radius >= gameRef.bottomMargin && vy > 0) {
         // bounced bottom
         _lastHitTime = now;
-        _pause = PAUSE_INTERVAL;
+        _pause = pauseInterval;
         _vx = 0;
         _vy = -vy;
         y = gameRef.myPad.y - gameRef.myPad.height / 2 - 2 * radius;
         x = gameRef.myPad.x;
         gameRef.addOpponentScore();
         forceNetSend = true;
-      }
-
-      if (gameRef.isSingle) {
-        if (gameRef.oppoPad.touch(ballRect) && vy < 0) {
-          FlameAudio.play(POP_FILE);
-          y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
-          _vy = -vy;
-          _vx += randSpin(gameRef.myPad.vx.sign);
-        } else if (y - radius <= gameRef.topMargin && vy < 0) {
-          // bounced top
-          _pause = PAUSE_INTERVAL;
-          _vx = 0;
-          _vy = -vy;
-          y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
-          x = gameRef.oppoPad.x;
-          gameRef.addMyScore();
-        }
+      } else if (gameRef.oppoPad.touch(ballRect) && vy < 0) {
+        FlameAudio.play(popFile);
+        y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
+        _vy = -vy;
+        _vx += randSpin(gameRef.myPad.vx.sign);
+      } else if (y - radius <= gameRef.topMargin && vy < 0) {
+        // bounced top
+        _pause = pauseInterval;
+        _vx = 0;
+        _vy = -vy;
+        y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
+        x = gameRef.oppoPad.x;
+        gameRef.addMyScore();
       }
     }
   }
@@ -168,9 +168,9 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
     x = _pxMap.toDevX(normX);
     y = _pxMap.toDevY(normY);
     _vx = 0;
-    _vy = _pxMap.toDevHgt(NORM_SPEED);
-    width = _pxMap.toDevWth(2 * NORM_RAD);
-    height = _pxMap.toDevHgt(2 * NORM_RAD);
+    _vy = _pxMap.toDevHgt(normSpeed);
+    width = _pxMap.toDevWth(2 * normRad);
+    height = _pxMap.toDevHgt(2 * normRad);
   }
 
   /// update ball position and velocity based on network update.

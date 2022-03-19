@@ -21,7 +21,7 @@ import 'package:vector_math/vector_math_64.dart';
 
 /// Util to figure out actual device resolution and mapping of game position
 class PixelMapper {
-  static const NORM_PADDING = 0.05;
+  static const normPadding = 0.05;
 
   late final double pixelRatio;
   late final Size physicalScreenSize;
@@ -37,7 +37,7 @@ class PixelMapper {
   late final double safeWidth;
   late final double safeHeight;
 
-  PixelMapper({gameWidth: 0, gameHeight: 0}) {
+  PixelMapper({gameWidth = 0, gameHeight = 0}) {
     if (gameWidth > 0 && gameHeight > 0) {
       pixelRatio = 1;
       physicalScreenSize = Size(gameWidth, gameHeight);
@@ -47,9 +47,9 @@ class PixelMapper {
       logicalWidth = physicalWidth;
       logicalHeight = physicalHeight;
 
-      paddingLeft = NORM_PADDING * logicalWidth;
+      paddingLeft = normPadding * logicalWidth;
       paddingRight = paddingLeft;
-      paddingTop = NORM_PADDING * logicalHeight;
+      paddingTop = normPadding * logicalHeight;
       paddingBottom = paddingTop;
     } else {
       pixelRatio = window.devicePixelRatio;

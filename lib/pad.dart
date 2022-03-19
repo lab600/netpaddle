@@ -27,17 +27,17 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
 
   // all position and sizing are ratio of screen dimension i.e. btw 0 to 1
   // to allow easy device independent rendering and compatibility
-  static const double NORM_WIDTH = 0.25;
-  static const double NORM_HEIGHT = 0.02;
-  static const double INIT_NORM_Y_MARGIN = .1;
-  static const double SPEED_NORM_X = 1; // cover full width of screen in 1 sec
+  static const double normWidth = 0.25;
+  static const double normHeight = 0.02;
+  static const double initNormYMargin = .1;
+  static const double speedNormX = 1; // cover full width of screen in 1 sec
 
   final bool isPlayer;
 
   double _vx = 0; // either -SPEED_X, 0, +SPEED_X
   late PixelMapper _pxMap;
 
-  Pad({gameWidth: 0, gameHeight: 0, this.isPlayer = true}) : super() {
+  Pad({gameWidth = 0, gameHeight = 0, this.isPlayer = true}) : super() {
     anchor = Anchor.center;
     _pxMap = PixelMapper(gameWidth: gameWidth, gameHeight: gameHeight);
     reset();
@@ -48,8 +48,8 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
   void reset() {
     scale = Vector2(1, 1);
     position = _pxMap.toDevPos(
-        0.5, isPlayer ? 1 - INIT_NORM_Y_MARGIN : INIT_NORM_Y_MARGIN);
-    size = _pxMap.toDevDim(NORM_WIDTH, NORM_HEIGHT);
+        0.5, isPlayer ? 1 - initNormYMargin : initNormYMargin);
+    size = _pxMap.toDevDim(normWidth, normHeight);
   }
 
   @override
@@ -64,8 +64,8 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
     x = _pxMap.toDevX(normX);
     y = _pxMap.toDevY(normY);
     _vx = _pxMap.toDevWth(normVX);
-    width = _pxMap.toDevWth(NORM_WIDTH);
-    height = _pxMap.toDevHgt(NORM_HEIGHT);
+    width = _pxMap.toDevWth(normWidth);
+    height = _pxMap.toDevHgt(normHeight);
   }
 
   @override
@@ -89,9 +89,9 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
     } else if (gameRef.isSingle) {
       // computer controls opponent, go to direction of ball
       if (gameRef.ball.x > (x + .3 * width)) {
-        _vx = _pxMap.toDevWth(SPEED_NORM_X);
+        _vx = _pxMap.toDevWth(speedNormX);
       } else if (gameRef.ball.x < (x - .3 * width)) {
-        _vx = -_pxMap.toDevWth(SPEED_NORM_X);
+        _vx = -_pxMap.toDevWth(speedNormX);
       } else {
         _vx = 0;
       }
@@ -104,13 +104,13 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
 
   void movePlayerLeft() {
     if (isPlayer) {
-      _vx = -_pxMap.toDevWth(SPEED_NORM_X);
+      _vx = -_pxMap.toDevWth(speedNormX);
     }
   }
 
   void movePlayerRight() {
     if (isPlayer) {
-      _vx = _pxMap.toDevWth(SPEED_NORM_X);
+      _vx = _pxMap.toDevWth(speedNormX);
     }
   }
 

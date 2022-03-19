@@ -16,10 +16,10 @@
 // under the License.
 
 /// Constants used by multiple classes
-const POP_FILE = 'pop.mp3';
-const CRASH_FILE = 'crash.mp3';
-const TADA_FILE = 'tada.mp3';
-const WAH_FILE = 'wahwah.mp3';
-const BKGND_FILE = 'bkgnd-long.mp3';
-const PLAY_FILE = 'play-long.mp3';
-const WHISTLE_FILE = 'whistle.mp3';
+const popFile = 'pop.mp3';
+const crashFile = 'crash.mp3';
+const victoryFile = 'tada.mp3';
+const wahFile = 'wahwah.mp3';
+const backgroundFile = 'bkgnd-long.mp3';
+const playFile = 'play-long.mp3';
+const whistleFile = 'whistle.mp3';

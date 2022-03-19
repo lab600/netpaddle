@@ -41,6 +41,9 @@ dependencies:
   audioplayers: ^0.20.1
   flutter_native_splash: ^2.0.5
   path_provider: ^2.0.9
+  cryptography: ^2.0.3
+  cryptography_flutter: ^2.0.2
+  convert: ^3.0.1
 
 dev_dependencies:
   flame_test: ^1.1.0

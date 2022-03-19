@@ -16,7 +16,7 @@
 // under the License.
 
 import 'dart:typed_data';
-
+import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
@@ -31,7 +31,7 @@ import 'game.dart';
 void main() async {
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((r) {
-    print('${r.loggerName} ${r.level.name} ${r.time}: ${r.message}');
+    debugPrint('${r.loggerName} ${r.level.name} ${r.time}: ${r.message}');
   });
 
   final log = Logger("main");
@@ -41,6 +41,7 @@ void main() async {
     SystemUiMode.manual,
     overlays: [SystemUiOverlay.bottom, SystemUiOverlay.top],
   );
+  FlutterCryptography.enable();
   Flame.device.fullScreen();
   Flame.device.setOrientation(DeviceOrientation.portraitUp);
 
@@ -54,7 +55,7 @@ void main() async {
       String? wifiIPv4 = await networkInfo.getWifiIP();
       log.info("Wifi IPv4 address is $wifiIPv4 on ${wifiName ?? 'network'}.");
       addressIPv4 =
-          Uint8List.fromList(wifiIPv4!.split("\.").map(int.parse).toList());
+          Uint8List.fromList(wifiIPv4!.split(r".").map(int.parse).toList());
     } on Exception catch (e) {
       log.warning('Failed to get Wifi IPv4 address', e);
       addressIPv4 = null;

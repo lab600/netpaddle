@@ -21,7 +21,7 @@ import 'dart:typed_data';
 
 /// Name Generator uses IP address or randomly generate a name for player
 class NameGenerator {
-  static const List<String> ANIMALS = [
+  static const List<String> animalNames = [
     'Rat',
     'Cow',
     'Tiger',
@@ -84,7 +84,7 @@ class NameGenerator {
     'Wolf',
   ];
 
-  static const List<String> ADJECTIVES = [
+  static const List<String> adjectives = [
     'Red',
     'Orange',
     'Yellow',
@@ -141,14 +141,14 @@ class NameGenerator {
     late final int animalIdx;
     late final int adjIdx;
     if (addressByteIPv4 == null) {
-      var rng = new Random();
-      animalIdx = rng.nextInt(ANIMALS.length);
-      adjIdx = rng.nextInt(ADJECTIVES.length);
+      var rng = Random();
+      animalIdx = rng.nextInt(animalNames.length);
+      adjIdx = rng.nextInt(adjectives.length);
     } else {
       int lastByte = addressByteIPv4.last;
       animalIdx = lastByte >> 4;
       adjIdx = lastByte & 0x0F;
     }
-    return ADJECTIVES[adjIdx] + ' ' + ANIMALS[animalIdx];
+    return adjectives[adjIdx] + ' ' + animalNames[animalIdx];
   }
 }
