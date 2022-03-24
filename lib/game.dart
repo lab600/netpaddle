@@ -138,6 +138,17 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
     add(oppoPad);
     add(ball);
     showMainMenu();
+    if (!kIsWeb && _netSvc == null) {
+      _gameMsg = "Join Wifi to host or join network games.";
+    }
+
+  }
+
+  /// When game is to be removed
+  /// * stop music
+  @override
+  void onRemove() async {
+    await _music.stop();
   }
 
   /// show main menu, start background music if not on first load
@@ -201,21 +212,22 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (game.gameMsg.isNotEmpty)
+            if (gameMsg.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Text(game.gameMsg),
+                child: Text(gameMsg),
               ),
-            gameButton('Single Player', game.startSinglePlayer),
+            gameButton('Single Player', startSinglePlayer),
 
             /// can't support hosting net game when playing in browser
-            if (!kIsWeb) gameButton('Host Network Game', game.hostNetGame),
+            if (!kIsWeb && _netSvc != null)
+              gameButton('Host Network Game', hostNetGame),
 
             /// can't support joining net game as guest when playing in browser
-            if (!kIsWeb && game._netSvc != null)
-              for (var sName in game._netSvc!.serviceNames)
+            if (!kIsWeb && _netSvc != null)
+              for (var sName in _netSvc!.serviceNames)
                 gameButton('Play $sName',
-                      () => game.joinNetGame(sName),
+                      () => joinNetGame(sName),
                 )
           ],
         ),

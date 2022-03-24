@@ -56,7 +56,7 @@ void main() async {
       log.info("Wifi IPv4 address is $wifiIPv4 on ${wifiName ?? 'network'}.");
       addressIPv4 =
           Uint8List.fromList(wifiIPv4!.split(r".").map(int.parse).toList());
-    } on Exception catch (e) {
+    } catch (e) {
       log.warning('Failed to get Wifi IPv4 address', e);
       addressIPv4 = null;
     }
