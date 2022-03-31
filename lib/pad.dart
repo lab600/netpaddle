@@ -29,7 +29,7 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
   // to allow easy device independent rendering and compatibility
   static const double normWidth = 0.25;
   static const double normHeight = 0.02;
-  static const double initNormYMargin = .1;
+  static const double initNormYMargin = .15;
   static const double speedNormX = 1; // cover full width of screen in 1 sec
 
   final bool isPlayer;
