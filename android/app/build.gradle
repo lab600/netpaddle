@@ -31,6 +31,9 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
+
+def sdkRoot = System.getenv('ANDROID_SDK_ROOT')
+
 android {
     compileSdkVersion flutter.compileSdkVersion
 
@@ -53,6 +56,7 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        ndkPath = "$sdkRoot/ndk"
         ndk {
             debugSymbolLevel 'FULL'
         }
