@@ -57,7 +57,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
   static const initHeight = 200.0; // interim value before game size ready
   static const maxNetWait = Duration(seconds: 10); // opponent disconnected
   static const hitWait = Duration(milliseconds: 60); // guard repeated hits
-  static const maxSendGap = 0.025; // max of 40 network update/sec
+  static const maxSendGap = 0.01; // max of 100 network update/sec
 
   final TextPaint _txtPaint = TextPaint(
     style: const TextStyle(fontSize: 14.0, color: Colors.white),
