@@ -45,15 +45,14 @@ void main() async {
   Flame.device.fullScreen();
   Flame.device.setOrientation(DeviceOrientation.portraitUp);
 
-  final networkInfo = NetworkInfo();
-
   Uint8List? addressIPv4;
   if (!kIsWeb) {
     // if not running in Web try to get local IP address
     try {
-      String? wifiName = await networkInfo.getWifiName();
+      final networkInfo = NetworkInfo();
+
       String? wifiIPv4 = await networkInfo.getWifiIP();
-      log.info("Wifi IPv4 address is $wifiIPv4 on ${wifiName ?? 'network'}.");
+      log.info("Wifi IPv4 address is $wifiIPv4.");
       addressIPv4 =
           Uint8List.fromList(wifiIPv4!.split(r".").map(int.parse).toList());
     } catch (e) {
