@@ -16,7 +16,6 @@
 // under the License.
 
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:clock/clock.dart';
 import 'package:flame/input.dart';
@@ -141,7 +140,6 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
     if (!kIsWeb && _netSvc == null) {
       _gameMsg = "Join Wifi to host or join network games.";
     }
-
   }
 
   /// When game is to be removed
@@ -197,11 +195,11 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
         child: SizedBox(
           width: _pxMap.toDevWth(.7),
           child: ElevatedButton(
+            onPressed: handler,
             child: Text(
               txt,
               textAlign: TextAlign.center,
             ),
-            onPressed: handler,
           ),
         ),
       );
@@ -220,14 +218,14 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
             gameButton('Single Player', startSinglePlayer),
 
             /// can't support hosting net game when playing in browser
-            if (!kIsWeb && _netSvc != null)
-              gameButton('Host Network Game', hostNetGame),
+            if (!kIsWeb && _netSvc != null) gameButton('Host Network Game', hostNetGame),
 
             /// can't support joining net game as guest when playing in browser
             if (!kIsWeb && _netSvc != null)
               for (var sName in _netSvc!.serviceNames)
-                gameButton('Play $sName',
-                      () => joinNetGame(sName),
+                gameButton(
+                  'Play $sName',
+                  () => joinNetGame(sName),
                 )
           ],
         ),
@@ -253,8 +251,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
   void onHorizontalDragUpdate(DragUpdateInfo info) {
     final dragX = info.delta.global.x;
     final endX = info.eventPosition.global.x;
-    if (endX >= myPad.x - myPad.width / 2 &&
-        endX <= myPad.x + myPad.width / 2) {
+    if (endX >= myPad.x - myPad.width / 2 && endX <= myPad.x + myPad.width / 2) {
       myPad.setPlayerStationary();
     } else if (dragX < 0) {
       myPad.movePlayerLeft();

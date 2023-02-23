@@ -149,6 +149,6 @@ class NameGenerator {
       animalIdx = lastByte >> 4;
       adjIdx = lastByte & 0x0F;
     }
-    return adjectives[adjIdx] + ' ' + animalNames[animalIdx];
+    return '${adjectives[adjIdx]} ${animalNames[animalIdx]}';
   }
 }

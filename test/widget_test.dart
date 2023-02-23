@@ -16,10 +16,9 @@
 // under the License.
 
 // This is a basic Flutter widget test to make sure app launches
-import 'dart:typed_data';
-
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import 'package:flame_test/flame_test.dart';
 import 'package:netpaddle/game.dart';
@@ -29,14 +28,8 @@ final fixedGameSize = Vector2(
   800,
 );
 
-final gameTester = FlameTester(
-  () => PaddleGame(Uint8List.fromList([127, 0, 0, 1])),
-  gameSize: fixedGameSize,
-);
-
 void main() {
   group('Game Tests', () {
-
     //Define what should run before and after each test
     setUp(() {
       TestWidgetsFlutterBinding.ensureInitialized();
@@ -44,14 +37,16 @@ void main() {
 
     tearDown(() {});
 
-    gameTester.widgetTest('game widget can be created', (game, tester) async {
+    testWithFlameGame('game widget can be created', (game) async {
+      await game.ready();
       expect(find.byGame<PaddleGame>(), findsOneWidget);
     });
 
     // some how overlay not visible
-    // gameTester.widgetTest('game main menu has right buttons on launch', (game, tester) async {
-    //   expect(find.widgetWithText(ElevatedButton, 'Single Player'), findsOneWidget);
-    //   expect(find.widgetWithText(ElevatedButton, 'Host Network Game'), findsOneWidget);
-    // });
+    testWithFlameGame('game main menu has right buttons on launch', (game) async {
+      await game.ready();
+      expect(find.widgetWithText(ElevatedButton, 'Single Player'), findsOneWidget);
+      expect(find.widgetWithText(ElevatedButton, 'Host Network Game'), findsOneWidget);
+    });
   });
 }

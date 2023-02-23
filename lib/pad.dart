@@ -47,20 +47,19 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
 
   void reset() {
     scale = Vector2(1, 1);
-    position = _pxMap.toDevPos(
-        0.5, isPlayer ? 1 - initNormYMargin : initNormYMargin);
+    position = _pxMap.toDevPos(0.5, isPlayer ? 1 - initNormYMargin : initNormYMargin);
     size = _pxMap.toDevDim(normWidth, normHeight);
   }
 
   @override
-  void onGameResize(Vector2 gameSize) {
+  void onGameResize(Vector2 size) {
     final normX = _pxMap.toNormX(x);
     final normY = _pxMap.toNormY(y);
     final normVX = _pxMap.toNormWth(vx);
 
-    super.onGameResize(gameSize);
+    super.onGameResize(size);
 
-    _pxMap = PixelMapper(gameWidth: gameSize.x, gameHeight: gameSize.y);
+    _pxMap = PixelMapper(gameWidth: size.x, gameHeight: size.y);
     x = _pxMap.toDevX(normX);
     y = _pxMap.toDevY(normY);
     _vx = _pxMap.toDevWth(normVX);

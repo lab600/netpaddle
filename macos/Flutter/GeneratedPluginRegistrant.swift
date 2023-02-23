@@ -5,14 +5,14 @@
 import FlutterMacOS
 import Foundation
 
-import audioplayers
-import bonsoir
+import audioplayers_darwin
+import bonsoir_darwin
 import cryptography_flutter
-import network_info_plus_macos
-import path_provider_macos
+import network_info_plus
+import path_provider_foundation
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
-  AudioplayersPlugin.register(with: registry.registrar(forPlugin: "AudioplayersPlugin"))
+  AudioplayersDarwinPlugin.register(with: registry.registrar(forPlugin: "AudioplayersDarwinPlugin"))
   BonsoirPlugin.register(with: registry.registrar(forPlugin: "BonsoirPlugin"))
   CryptographyFlutterPlugin.register(with: registry.registrar(forPlugin: "CryptographyFlutterPlugin"))
   NetworkInfoPlusPlugin.register(with: registry.registrar(forPlugin: "NetworkInfoPlusPlugin"))

@@ -52,11 +52,9 @@ class GameNetData {
     this.name,
   );
 
-  static int normFloatToInt(double nf) =>
-      (nf.clamp(-1.0, 1.0) * normFloatBase).round();
+  static int normFloatToInt(double nf) => (nf.clamp(-1.0, 1.0) * normFloatBase).round();
 
-  static double normIntToFloat(int ni) =>
-      (ni / normFloatBase).clamp(-1.0, 1.0);
+  static double normIntToFloat(int ni) => (ni / normFloatBase).clamp(-1.0, 1.0);
 
   GameNetData.fromPayload(Uint32List data)
       : gameID = data[0],
@@ -69,7 +67,7 @@ class GameNetData {
         pause = normIntToFloat(data[7]),
         myScore = data[8],
         oppoScore = data[9],
-        name = String.fromCharCodes(data, 11, 11+data[10]);
+        name = String.fromCharCodes(data, 11, 11 + data[10]);
 
   Int32List toNetBundle() {
     return Int32List.fromList([
@@ -129,7 +127,7 @@ class GameNetSvc {
   String get oppoName => _oppoName!;
 
   Uint8List bitmask(Uint8List bytes, int byteMask) =>
-      Uint8List.fromList(bytes.map((b) => b^byteMask).toList());
+      Uint8List.fromList(bytes.map((b) => b ^ byteMask).toList());
 
   void _scan() async {
     BonsoirDiscovery discovery = BonsoirDiscovery(type: svcType);
@@ -139,12 +137,11 @@ class GameNetSvc {
     discovery.eventStream?.listen((e) {
       if (_mySvc?.name != e.service!.name) {
         if (e.service != null && e.service!.name.isNotEmpty) {
-          if (e.type == BonsoirDiscoveryEventType.DISCOVERY_SERVICE_RESOLVED) {
+          if (e.type == BonsoirDiscoveryEventType.discoveryServiceResolved) {
             log.info("Found service at ${e.service!.name}...");
             _host2svc[e.service!.name] = (e.service) as ResolvedBonsoirService;
             _onDiscovery();
-          } else
-          if (e.type == BonsoirDiscoveryEventType.DISCOVERY_SERVICE_LOST) {
+          } else if (e.type == BonsoirDiscoveryEventType.discoveryServiceLost) {
             log.info("Lost service at ${e.service!.name}...");
 
             _host2svc.remove(e.service!.name);
@@ -213,7 +210,7 @@ class GameNetSvc {
         hex.decode(hostSvc.attributes![gameIDAttrib]!),
       );
       final maskedSecretBytes = Uint8List.fromList(
-          hex.decode(hostSvc.attributes![secretAttrib]!),
+        hex.decode(hostSvc.attributes![secretAttrib]!),
       );
 
       if (enableCrypto) {
@@ -254,11 +251,8 @@ class GameNetSvc {
         // as added precaution data sent is XOR masked by sender address last byte
         final myAddrLastByte = _myAddress!.rawAddress.last;
         final maskedDataBytes = bitmask(dataBytes, myAddrLastByte);
-        final secretBox = await crypto.encrypt(
-            maskedDataBytes,
-            secretKey: _secretKey!,
-            nonce: _gameNonce
-        );
+        final secretBox =
+            await crypto.encrypt(maskedDataBytes, secretKey: _secretKey!, nonce: _gameNonce);
         payload = secretBox.concatenation();
       } else {
         payload = dataBytes;
@@ -293,9 +287,8 @@ class GameNetSvc {
           nonceLength: crypto.nonceLength,
           macLength: crypto.macAlgorithm.macLength,
         );
-        final maskedPayload = Uint8List.fromList(
-            await crypto.decrypt(secretBox, secretKey: _secretKey!)
-        );
+        final maskedPayload =
+            Uint8List.fromList(await crypto.decrypt(secretBox, secretKey: _secretKey!));
 
         // as added precaution data sent is XOR masked by sender address last byte
         final oppoAddrLastByte = _oppoAddress!.rawAddress.last;
@@ -315,10 +308,8 @@ class GameNetSvc {
 
       // make sure data is has right game
       if (data.gameID != gameID) {
-        log.warning(
-            "Ignoring message from unexpected address $fromAddr "
-            "due to mismatched gameID ${data.gameID} expecting $gameID"
-        );
+        log.warning("Ignoring message from unexpected address $fromAddr "
+            "due to mismatched gameID ${data.gameID} expecting $gameID");
         return;
       }
       onMsg(data);

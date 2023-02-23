@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import 'dart:typed_data';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
@@ -53,8 +52,7 @@ void main() async {
 
       String? wifiIPv4 = await networkInfo.getWifiIP();
       log.info("Wifi IPv4 address is $wifiIPv4.");
-      addressIPv4 =
-          Uint8List.fromList(wifiIPv4!.split(r".").map(int.parse).toList());
+      addressIPv4 = Uint8List.fromList(wifiIPv4!.split(r".").map(int.parse).toList());
     } catch (e) {
       log.warning('Failed to get Wifi IPv4 address', e);
       addressIPv4 = null;
