@@ -34,8 +34,8 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
 
   static const slowTimeFactor = 1.0; // 1 for normal speed, > 1 to slow
   static const normRad = 0.01;
-  static const normSpeed = 0.3 /slowTimeFactor;
-  static const normSpin = 0.3 /slowTimeFactor;
+  static const normSpeed = 0.3 / slowTimeFactor;
+  static const normSpin = 0.3 / slowTimeFactor;
 
   final _rand = Random();
 
@@ -91,9 +91,7 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
     if (_pause > 0) {
       // if we are in a paused state, reduce the count down by elapsed time
       _pause = _pause - dt;
-      x = y > gameRef.myPad.y - _pxMap.safeWidth / 3
-          ? gameRef.myPad.x
-          : gameRef.oppoPad.x;
+      x = y > gameRef.myPad.y - _pxMap.safeWidth / 3 ? gameRef.myPad.x : gameRef.oppoPad.x;
       if (_pause <= 0) {
         // turn off forcing sending network updates at end of pause
         forceNetSend = false;
