@@ -138,17 +138,10 @@ class NameGenerator {
   ];
 
   static String genNewName(Uint8List? addressByteIPv4) {
-    late final int animalIdx;
-    late final int adjIdx;
-    if (addressByteIPv4 == null) {
-      var rng = Random();
-      animalIdx = rng.nextInt(animalNames.length);
-      adjIdx = rng.nextInt(adjectives.length);
-    } else {
-      int lastByte = addressByteIPv4.last;
-      animalIdx = lastByte >> 4;
-      adjIdx = lastByte & 0x0F;
-    }
+    final seed = addressByteIPv4 == null ? 0 : addressByteIPv4.last;
+    final rng = Random(seed);
+    final int animalIdx = rng.nextInt(animalNames.length);
+    final int adjIdx = rng.nextInt(adjectives.length);
     return '${adjectives[adjIdx]} ${animalNames[animalIdx]}';
   }
 }
