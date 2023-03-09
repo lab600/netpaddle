@@ -15,7 +15,6 @@
 // specific language governing permissions and limitations
 // under the License.
 
-import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
@@ -23,6 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:logging/logging.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:provider/provider.dart';
 
 import 'game.dart';
 
@@ -40,7 +40,6 @@ void main() async {
     SystemUiMode.manual,
     overlays: [SystemUiOverlay.bottom, SystemUiOverlay.top],
   );
-  FlutterCryptography.enable();
   Flame.device.fullScreen();
   Flame.device.setOrientation(DeviceOrientation.portraitUp);
 
@@ -58,7 +57,18 @@ void main() async {
       addressIPv4 = null;
     }
   }
-
   final game = PaddleGame(addressIPv4);
-  runApp(GameWidget(game: game, overlayBuilderMap: game.overlayMap));
+
+  runApp(
+    ChangeNotifierProvider<PaddleGame>.value(
+      value: game,
+      child: GameWidget(
+        game: game,
+        overlayBuilderMap: {
+          PaddleGame.mainOverlayKey: game.overlayBuilder,
+        },
+        initialActiveOverlays: const [PaddleGame.mainOverlayKey],
+      ),
+    ),
+  );
 }

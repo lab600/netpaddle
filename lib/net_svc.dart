@@ -97,7 +97,7 @@ class GameNetSvc {
 
   static final log = Logger("GameNetSvc");
 
-  static final Cipher crypto = FlutterAesGcm(AesGcm.with128bits());
+  static final Cipher crypto = FlutterAesGcm(secretKeyLength: 32);
 
   final String myName;
   Uint8List? _gameNonce;
@@ -129,7 +129,7 @@ class GameNetSvc {
   Uint8List bitmask(Uint8List bytes, int byteMask) =>
       Uint8List.fromList(bytes.map((b) => b ^ byteMask).toList());
 
-  void _scan() async {
+  Future<void> _scan() async {
     BonsoirDiscovery discovery = BonsoirDiscovery(type: svcType);
     await discovery.ready;
     await discovery.start();
@@ -152,7 +152,7 @@ class GameNetSvc {
     });
   }
 
-  void startHosting(Function(GameNetData p) onMsg, Function() onDone) async {
+  Future<void> startHosting(Function(GameNetData p) onMsg, Function() onDone) async {
     _safeCloseSocket();
     await _safeStopBroadcast();
     final addrLastByte = _myAddress!.rawAddress.last;
@@ -186,17 +186,17 @@ class GameNetSvc {
     );
   }
 
-  void stopBroadcasting() async {
+  Future<void> stopBroadcasting() async {
     log.info("Stop Broadcasting game as $myName...");
     await _safeStopBroadcast();
   }
 
-  void stopHosting() async {
+  Future<void> stopHosting() async {
     log.info("Stop Hosting game as $myName...");
     _safeCloseSocket();
   }
 
-  void joinGame(
+  Future<void> joinGame(
     String name,
     void Function(GameNetData) onMsg,
     void Function() onDone,
@@ -237,12 +237,12 @@ class GameNetSvc {
     }
   }
 
-  void leaveGame() {
+  Future<void> leaveGame() async {
     log.info("Leaving net game...");
     _safeCloseSocket();
   }
 
-  void send(GameNetData data) async {
+  Future<void> send(GameNetData data) async {
     if (_sock != null) {
       final dataBytes = data.toNetBundle().buffer.asUint8List();
 
@@ -266,7 +266,7 @@ class GameNetSvc {
     }
   }
 
-  void _onEvent(Function(GameNetData) onMsg, RawSocketEvent event) async {
+  Future<void> _onEvent(Function(GameNetData) onMsg, RawSocketEvent event) async {
     if (event == RawSocketEvent.read && _sock != null) {
       final payload = _sock!.receive();
       if (payload == null) return;

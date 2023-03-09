@@ -19,18 +19,16 @@ import 'dart:math';
 
 import 'package:clock/clock.dart';
 import 'package:flame/components.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'pixel_mapper.dart';
 import 'game.dart';
-import 'constants.dart';
 
 /// Ball component keep ball state and implement logic to calc and render pos
 class Ball extends PositionComponent with HasGameRef<PaddleGame> {
   static final log = Logger("Ball");
 
-  static const pauseInterval = 3.0; // pause in secs when a point is scored
+  static const pauseInterval = 1.0; // pause in secs when a point is scored
 
   static const slowTimeFactor = 1.0; // 1 for normal speed, > 1 to slow
   static const normRad = 0.01;
@@ -104,22 +102,25 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
         // bounced left wall
         x = gameRef.leftMargin + radius;
         _vx = -vx;
+        forceNetSend = true;
       } else if (x >= gameRef.rightMargin - radius) {
         // bounced right wall
         x = gameRef.rightMargin - radius;
         _vx = -vx;
+        forceNetSend = true;
       }
 
       final now = clock.now();
       if (gameRef.myPad.touch(ballRect) && vy > 0) {
         _lastHitTime = now;
-        FlameAudio.play(popFile);
+        gameRef.playPopSound();
         y = gameRef.myPad.y - gameRef.myPad.height / 2 - 2 * radius;
         _vy = -vy;
         _vx += randSpin(gameRef.myPad.vx.sign);
         forceNetSend = true;
       } else if (y + radius >= gameRef.bottomMargin && vy > 0) {
         // bounced bottom
+        gameRef.playCrashSound();
         _lastHitTime = now;
         _pause = pauseInterval;
         _vx = 0;
@@ -129,18 +130,21 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
         gameRef.addOpponentScore();
         forceNetSend = true;
       } else if (gameRef.oppoPad.touch(ballRect) && vy < 0) {
-        FlameAudio.play(popFile);
+        gameRef.playPopSound();
         y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
         _vy = -vy;
         _vx += randSpin(gameRef.myPad.vx.sign);
+        forceNetSend = true;
       } else if (y - radius <= gameRef.topMargin && vy < 0) {
         // bounced top
+        gameRef.playCrashSound();
         _pause = pauseInterval;
         _vx = 0;
         _vy = -vy;
         y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
         x = gameRef.oppoPad.x;
         gameRef.addMyScore();
+        forceNetSend = true;
       }
     }
   }

@@ -3,7 +3,7 @@ PODS:
     - Flutter
   - bonsoir_darwin (2.0.0):
     - Flutter
-  - cryptography_flutter (0.1.0):
+  - cryptography_flutter (0.2.0):
     - Flutter
   - Flutter (1.0.0)
   - flutter_native_splash (0.0.1):
@@ -42,7 +42,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   audioplayers_darwin: 877d9a4d06331c5c374595e46e16453ac7eafa40
   bonsoir_darwin: e1025260d3bc378c9336ddf2100540ab558ce82f
-  cryptography_flutter: a2c541ba25ff28549f989f856dde126c961defcd
+  cryptography_flutter: 381bdacc984abcfbe3ca45ef7c76566ff061614c
   Flutter: f04841e97a9d0b0a8025694d0796dd46242b2854
   flutter_native_splash: 52501b97d1c0a5f898d687f1646226c1f93c56ef
   network_info_plus: b78876159360f5580608c2cea620d6ceffabd0ad
@@ -50,4 +50,4 @@ SPEC CHECKSUMS:
 
 PODFILE CHECKSUM: 775997f741c536251164e3eacf6e34abf2eb7a17
 
-COCOAPODS: 1.11.3
+COCOAPODS: 1.12.0
