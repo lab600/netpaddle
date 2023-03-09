@@ -17,15 +17,15 @@
 
 import 'dart:math';
 
+import 'package:audioplayers/audioplayers.dart';
 import 'package:clock/clock.dart';
 import 'package:flame/input.dart';
 import 'package:flame/game.dart';
 import 'package:flame/widgets.dart';
-import 'package:flame_audio/bgm.dart';
-import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
+import 'package:provider/provider.dart';
 import 'package:synchronized/synchronized.dart';
 import 'name_generator.dart';
 import 'pixel_mapper.dart';
@@ -44,35 +44,54 @@ enum GameMode {
 }
 
 /// The Game class to keep game states and implement controller logic
-class PaddleGame extends FlameGame with HorizontalDragDetector {
+class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstance, ChangeNotifier {
   static final log = Logger("PaddleGame");
 
-  static const mainMenuOverlayKey = 'MainMenuOverlay';
-  static const hostWaitingOverlayKey = 'HostWaitingOverlay';
+  static const mainOverlayKey = 'MainOverlay';
   static const normTopMargin = 0.05;
   static const normBottomMargin = 0.95;
   static const maxScore = 3;
   static const initWidth = 100.0; // interim value before game size ready
   static const initHeight = 200.0; // interim value before game size ready
-  static const maxNetWait = Duration(seconds: 10); // opponent disconnected
+  static const maxNetWait = Duration(seconds: 5); // opponent disconnected
   static const hitWait = Duration(milliseconds: 60); // guard repeated hits
   static const maxSendGap = 0.01; // max of 100 network update/sec
+  static const inset = EdgeInsets.symmetric(vertical: 15.0);
+
+  static final backgroundSongAsset = AssetSource(backgroundFile);
+  static final gameSongAsset = AssetSource(playFile);
+  static final whistleAsset = AssetSource(whistleFile);
+  static final popAsset = AssetSource(popFile);
+  static final crashAsset = AssetSource(crashFile);
+  static final wahAsset = AssetSource(wahFile);
+  static final victoryAsset = AssetSource(victoryFile);
 
   final TextPaint _txtPaint = TextPaint(
     style: const TextStyle(fontSize: 14.0, color: Colors.white),
   );
 
-  final lock = Lock(); // support concurrency during network callback
-  final Bgm _music = FlameAudio.bgm..initialize();
+  final _lock = Lock(); // support concurrency during network callback
+  final _music = AudioPlayer()
+    ..setPlayerMode(PlayerMode.mediaPlayer)
+    ..setReleaseMode(ReleaseMode.loop);
+  final _popfx = AudioPlayer()
+    ..setSource(popAsset)
+    ..setPlayerMode(PlayerMode.mediaPlayer)
+    ..setReleaseMode(ReleaseMode.stop);
+  final _crashfx = AudioPlayer()
+    ..setSource(crashAsset)
+    ..setPlayerMode(PlayerMode.mediaPlayer)
+    ..setReleaseMode(ReleaseMode.stop);
+  final _sndfx = AudioPlayer()
+    ..setPlayerMode(PlayerMode.lowLatency)
+    ..setReleaseMode(ReleaseMode.stop);
 
   late final GameNetSvc? _netSvc;
-  late final Map<String, OverlayWidgetBuilder<PaddleGame>> overlayMap;
   late PixelMapper _pxMap;
   late final Pad myPad;
   late final Pad oppoPad;
   late final Ball ball;
 
-  bool _firstLoad = true;
   String _gameMsg = "";
   String get gameMsg => _gameMsg;
   int _myScore = 0;
@@ -107,36 +126,28 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
     // only offer playing over network if not web and has real IP address
     _netSvc = kIsWeb || addressIPv4 == null
         ? null
-        : GameNetSvc(addressIPv4, NameGenerator.genNewName(addressIPv4), _onDiscovery);
-
-    overlayMap = {
-      mainMenuOverlayKey: mainMenuOverlay,
-      hostWaitingOverlayKey: hostWaitingOverlay,
-    };
+        : GameNetSvc(
+            addressIPv4,
+            NameGenerator.genNewName(addressIPv4),
+            _onDiscovery,
+          );
   }
 
   /// When game is first loaded:
-  /// * cache all audio files,
   /// * make game aware of 3 components: player's pad, opponent's pad, and ball,
   /// * show the main menu overlay
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-
-    await FlameAudio.audioCache.loadAll([
-      crashFile,
-      popFile,
-      victoryFile,
-      wahFile,
-      backgroundFile,
-      playFile,
-      whistleFile,
-    ]);
-
     add(myPad);
     add(oppoPad);
     add(ball);
-    showMainMenu();
+    if (!kIsWeb) {
+      AudioPlayer.global.setGlobalAudioContext(
+        AudioContextConfig(forceSpeaker: false).build(),
+      );
+    }
+    startLobbySong();
     if (!kIsWeb && _netSvc == null) {
       _gameMsg = "Join Wifi to host or join network games.";
     }
@@ -145,32 +156,58 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
   /// When game is to be removed
   /// * stop music
   @override
-  void onRemove() async {
+  Future<void> onRemove() async {
+    await _sndfx.stop();
     await _music.stop();
+    super.onRemove();
   }
 
-  /// show main menu, start background music if not on first load
-  void showMainMenu() async {
-    // don't play music on first load if web or first load to avoid error msgs
-    if (!kIsWeb || !_firstLoad) {
-      await _music.stop();
-      await _music.play(backgroundFile);
-    }
-    refreshMainMenu();
+  /// Start Lobby Song
+  Future<void> startLobbySong() async {
+    await _music.stop();
+    await _music.play(backgroundSongAsset);
   }
 
-  /// refresh main menu so newly detected game hosts cqn be displayed
-  void refreshMainMenu() async {
-    overlays.remove(mainMenuOverlayKey);
-    overlays.add(mainMenuOverlayKey);
+  /// Start Game Song
+  Future<void> startGameSong() async {
+    await _music.stop();
+    await _music.play(gameSongAsset);
   }
+
+  /// Play Whistle Sound Effect
+  Future<void> playWhistleSound() async {
+    _sndfx.play(whistleAsset);
+  }
+
+  /// Play Defeat Sound Effect
+  Future<void> playDefeatSound() async {
+    _sndfx.play(wahAsset);
+  }
+
+  /// Play Victory Sound Effect
+  Future<void> playVictorySound() async {
+    _sndfx.play(victoryAsset);
+  }
+
+  /// Play Crash Sound Effect
+  Future<void> playCrashSound() async {
+    _crashfx.resume();
+  }
+
+  /// Play Pop Sound Effect
+  Future<void> playPopSound() async {
+    _popfx.resume();
+  }
+
+  // /// refresh main menu so newly detected game hosts can be displayed
+  // Future<void> refreshOverlay() async {
+  //   overlays.clear();
+  //   overlays.add(mainOverlayKey);
+  // }
 
   /// reset the game to specific mode and starting state for it.
   void _reset([GameMode mode = GameMode.over]) {
-    _firstLoad = false;
     _mode = mode;
-    _myScore = 0;
-    _oppoScore = 0;
     _receiveCount = -1;
     final bvy = isHost || isSingle ? Ball.normSpeed : -Ball.normSpeed;
     myPad.reset();
@@ -180,6 +217,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
       normX: 0.5,
       normY: 0.5,
     );
+    notifyListeners();
   }
 
   /// on resize, recalibrate the pixel mapper to match new dimensions
@@ -191,7 +229,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
 
   /// reusable logic to generate a Button and backing logic
   Widget gameButton(String txt, void Function() handler) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        padding: inset,
         child: SizedBox(
           width: _pxMap.toDevWth(.7),
           child: ElevatedButton(
@@ -205,46 +243,61 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
       );
 
   /// widget tree for the main menu overlay
-  Widget mainMenuOverlay(BuildContext ctx, PaddleGame game) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (gameMsg.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 20.0),
-                child: Text(gameMsg),
-              ),
-            gameButton('Single Player', startSinglePlayer),
+  Widget _mainMenuOverlay(ctx, PaddleGame game) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (gameMsg.isNotEmpty)
+            Padding(
+              padding: inset,
+              child: Text(gameMsg),
+            ),
+          gameButton('Single Player', startSinglePlayer),
 
-            /// can't support hosting net game when playing in browser
-            if (!kIsWeb && _netSvc != null) gameButton('Host Network Game', hostNetGame),
+          /// can't support hosting net game when playing in browser
+          if (!kIsWeb && _netSvc != null) gameButton('Host Network Game', hostNetGame),
 
-            /// can't support joining net game as guest when playing in browser
-            if (!kIsWeb && _netSvc != null)
-              for (var sName in _netSvc!.serviceNames)
-                gameButton(
-                  'Play $sName',
-                  () => joinNetGame(sName),
-                )
-          ],
-        ),
-      );
+          /// can't support joining net game as guest when playing in browser
+          if (!kIsWeb && _netSvc != null)
+            for (var sName in _netSvc!.serviceNames)
+              gameButton(
+                'Play $sName',
+                () => joinNetGame(sName),
+              )
+        ],
+      ),
+    );
+  }
 
   /// widget tree for the overlay waiting for guest to join player hosted game
-  Widget hostWaitingOverlay(BuildContext ctx, PaddleGame game) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20.0),
-              child: Text('Hosting Game as ${_netSvc!.myName}...'),
-            ),
-            gameButton('Cancel', game.stopHosting),
-          ],
-        ),
-      );
+  Widget _hostWaitingOverlay(ctx, PaddleGame game) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20.0),
+            child: Text('Hosting Game as ${_netSvc!.myName}...'),
+          ),
+          gameButton('Cancel', stopHosting),
+        ],
+      ),
+    );
+  }
+
+  Widget overlayBuilder(ctx, PaddleGame g) {
+    final consumer = Consumer<PaddleGame>(
+      builder: (context, game, child) => game.isOver
+          ? _mainMenuOverlay(context, game)
+          : game.isWaiting
+              ? _hostWaitingOverlay(context, game)
+              : const SizedBox.shrink(),
+    );
+    return consumer;
+  }
 
   /// horizontal drag will update player's paddle direction: left or right
   @override
@@ -267,60 +320,47 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
   }
 
   /// start Single Player game
-  void startSinglePlayer() async {
-    overlays.remove(mainMenuOverlayKey);
+  Future<void> startSinglePlayer() async {
     if (isSingle) return;
     _reset(GameMode.single);
+    _myScore = 0;
+    _oppoScore = 0;
     ball.reset(normVY: Ball.normSpeed);
-    FlameAudio.play(whistleFile);
-    await _music.stop();
-    await _music.play(playFile);
+    _sndfx.play(AssetSource(whistleFile));
+    startGameSong();
   }
 
-  /// start hosting a net game, synchronized just in case of repeated clicks
+  /// start hosting a net game
   void hostNetGame() {
-    lock.synchronized(() {
-      overlays.remove(mainMenuOverlayKey);
-      overlays.add(hostWaitingOverlayKey);
-
-      if (isWaiting) return;
-
-      _reset(GameMode.wait);
-      _netSvc!.startHosting(_updateOnReceive, endGame);
-    });
+    _myScore = 0;
+    _oppoScore = 0;
+    _netSvc!.startHosting(_updateOnReceive, endGame);
+    _reset(GameMode.wait);
   }
 
-  /// stop hosting net game, synchronized just in case of repeated clicks
+  /// stop hosting net game
   void stopHosting() {
-    lock.synchronized(() async {
-      _netSvc?.stopHosting();
-      _reset(GameMode.over);
-      overlays.remove(hostWaitingOverlayKey);
-      overlays.add(mainMenuOverlayKey);
-    });
+    _netSvc?.stopHosting();
+    _reset(GameMode.over);
   }
 
-  /// join a net game by name, synchronized just in case of repeated clicks
+  /// join a net game by name
   void joinNetGame(String netGameName) async {
-    lock.synchronized(() async {
-      overlays.remove(mainMenuOverlayKey);
-      _reset(GameMode.guest);
-      _netSvc?.joinGame(netGameName, _updateOnReceive, endGame);
-      await FlameAudio.play(whistleFile);
-      await _music.stop();
-      _music.play(playFile);
-    });
+    _myScore = 0;
+    _oppoScore = 0;
+    _netSvc?.joinGame(netGameName, _updateOnReceive, endGame);
+    _reset(GameMode.guest);
+    playWhistleSound();
+    startGameSong();
   }
 
   /// increment player's score limit by MAX_SCORE
   void addMyScore() async {
-    await FlameAudio.play(crashFile);
     _myScore = min(_myScore + 1, maxScore);
   }
 
   /// increment opponent score limit by MAX_SCORE
   void addOpponentScore() async {
-    await FlameAudio.play(crashFile);
     _oppoScore = min(_oppoScore + 1, maxScore);
   }
 
@@ -329,46 +369,42 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
   /// * nicely end net games if needed
   /// * set mode to game over
   /// * show main menu
-  void endGame() async {
-    lock.synchronized(() async {
-      if (isOver) return;
+  /// * play lobby song
+  Future<void> endGame() async {
+    if (isGuest) _netSvc?.leaveGame();
+    if (isHost) _netSvc?.stopHosting();
 
-      if (myScore >= maxScore) {
-        await FlameAudio.play(victoryFile);
-      } else if (_oppoScore >= maxScore) {
-        await FlameAudio.play(wahFile);
-      }
+    if (myScore >= maxScore) {
+      _gameMsg = "Victory!!!";
+      playVictorySound();
+    } else if (_oppoScore >= maxScore) {
+      _gameMsg = "Defeat!!!";
+      playDefeatSound();
+    }
 
-      if (isGuest) _netSvc?.leaveGame();
-      if (isHost) _netSvc?.stopHosting();
-
-      _mode = GameMode.over;
-      showMainMenu();
-    });
+    _reset();
+    startLobbySong();
   }
 
   /// on new host discovery, add it to main menu by refreshing it
   void _onDiscovery() {
-    if (isOver) refreshMainMenu(); // update game over menu only when isOver
+    notifyListeners(); // update game over menu only when isOver
   }
 
   /// update game state when receiving new net data from opponent.
   /// will check receiving order, guard against race condition from rapid
   /// updates when a ball just changed direction by pausing update for HIT_WAIT.
   void _updateOnReceive(GameNetData data) async {
-    lock.synchronized(() async {
+    _lock.synchronized(() async {
       _lastReceiveTime = clock.now();
 
       if (mode == GameMode.wait) {
         log.info("Received first msg from guest, starting game as host...");
         _netSvc!.stopBroadcasting();
-        overlays.remove(hostWaitingOverlayKey);
-        _mode = GameMode.host;
+        _reset(GameMode.host);
         _receiveCount = data.count;
-        //ball.reset(normVY: Ball.normSpeed, normX: .5, normY: .5);
-        await FlameAudio.play(whistleFile);
-        await _music.stop();
-        await _music.play(playFile);
+        playWhistleSound();
+        startGameSong();
       } else if (ball.vy == 0 && data.bvy != 0) {
         log.info("Guest just got the first update from host...");
         _receiveCount = data.count;
@@ -386,7 +422,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
 
       if (data.by > 0.8 && data.bvy < 0 && ball.vy < 0) {
         // ball Y direction changed, opponent must have detected hit, play Pop
-        FlameAudio.play(popFile);
+        playPopSound();
       }
 
       if (isGuest) {
@@ -400,21 +436,17 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
         );
         if (myScore < data.oppoScore || oppoScore < data.myScore) {
           // score changed, host must have detected crashed, play Crash
-          FlameAudio.play(crashFile);
+          await playCrashSound();
           _myScore = data.oppoScore;
           _oppoScore = data.myScore;
-
-          if (_oppoScore >= maxScore || _myScore >= maxScore) {
-            endGame();
-          }
         }
       }
     });
   }
 
   /// send game state update to opponent
-  void _sendStateUpdate() async {
-    lock.synchronized(() async {
+  Future<void> _sendStateUpdate() async {
+    _lock.synchronized(() async {
       final data = GameNetData(
         _netSvc!.gameID,
         _sendCount++,
@@ -435,33 +467,34 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
   /// update by detecting if game is over, and send network update if needed
   @override
   void update(double dt) async {
-    super.update(dt);
-    bool gameIsOver = false;
-    if (myScore >= maxScore) {
-      gameIsOver = true;
-      _gameMsg = "You've Won!";
-    } else if (oppoScore >= maxScore) {
-      gameIsOver = true;
-      _gameMsg = "You've Lost!";
-    } else if (isHost || isGuest) {
-      final waitLimit = _lastReceiveTime.add(maxNetWait);
-      if (clock.now().isAfter(waitLimit)) {
+    _lock.synchronized(() async {
+      super.update(dt);
+      bool gameIsOver = false;
+      if ((myScore >= maxScore || oppoScore >= maxScore) && !ball.isPaused) {
         gameIsOver = true;
-        _gameMsg = "Connection Interrupted.";
+      } else if (isHost || isGuest) {
+        final waitLimit = _lastReceiveTime.add(maxNetWait);
+        if (clock.now().isAfter(waitLimit)) {
+          log.info("${clock.now()} is after $waitLimit, consider connection lost.");
+          gameIsOver = true;
+          _gameMsg = "Connection Interrupted.";
+        }
       }
-    }
 
-    if (isHost || isGuest) {
-      _sinceLastSent += dt;
-
-      /// use max send to limit num of sends
-      if (_sinceLastSent >= maxSendGap || ball.forceNetSend) {
+      if (!isOver && gameIsOver) {
         _sendStateUpdate();
         _sinceLastSent = 0;
-      }
-    }
+        endGame();
+      } else if (isHost || isGuest) {
+        _sinceLastSent += dt;
 
-    if (gameIsOver) endGame();
+        /// use max send to limit num of sends
+        if (_sinceLastSent >= maxSendGap || ball.forceNetSend) {
+          _sendStateUpdate();
+          _sinceLastSent = 0;
+        }
+      }
+    });
   }
 
   /// Render game score and mode info
@@ -494,7 +527,6 @@ class PaddleGame extends FlameGame with HorizontalDragDetector {
         anchor: Anchor.topRight,
       );
     }
-
     super.render(canvas);
   }
 }
