@@ -133,7 +133,7 @@ class Ball extends PositionComponent with HasGameRef<PaddleGame> {
         gameRef.playPopSound();
         y = gameRef.oppoPad.y + gameRef.oppoPad.height / 2 + 2 * radius;
         _vy = -vy;
-        _vx += randSpin(gameRef.myPad.vx.sign);
+        _vx += randSpin(gameRef.oppoPad.vx.sign);
         forceNetSend = true;
       } else if (y - radius <= gameRef.topMargin && vy < 0) {
         // bounced top

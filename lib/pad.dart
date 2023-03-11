@@ -101,28 +101,20 @@ class Pad extends PositionComponent with HasGameRef<PaddleGame> {
     } // let remote host set opponent position
   }
 
-  void movePlayerLeft() {
-    if (isPlayer) {
-      _vx = -_pxMap.toDevWth(speedNormX);
-    }
+  void moveLeft() {
+    _vx = -_pxMap.toDevWth(speedNormX);
   }
 
-  void movePlayerRight() {
-    if (isPlayer) {
-      _vx = _pxMap.toDevWth(speedNormX);
-    }
+  void moveRight() {
+    _vx = _pxMap.toDevWth(speedNormX);
   }
 
-  void setPlayerStationary() {
-    if (isPlayer) {
-      _vx = 0;
-    }
+  void setStationary() {
+    _vx = 0;
   }
 
-  void setOpponentPos(double oppoPosX) {
-    if (!isPlayer) {
-      x = oppoPosX;
-    }
+  void setX(double newX) {
+    x = newX;
   }
 
   // see if pad touches the normalized rectangle

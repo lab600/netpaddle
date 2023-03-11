@@ -305,18 +305,18 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
     final dragX = info.delta.global.x;
     final endX = info.eventPosition.global.x;
     if (endX >= myPad.x - myPad.width / 2 && endX <= myPad.x + myPad.width / 2) {
-      myPad.setPlayerStationary();
+      myPad.setStationary();
     } else if (dragX < 0) {
-      myPad.movePlayerLeft();
+      myPad.moveLeft();
     } else if (dragX > 0) {
-      myPad.movePlayerRight();
+      myPad.moveRight();
     }
   }
 
   /// when end of drag detected, stop moving player's paddle
   @override
   void onHorizontalDragEnd(DragEndInfo info) {
-    myPad.setPlayerStationary();
+    myPad.setStationary();
   }
 
   /// start Single Player game
@@ -418,7 +418,15 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
       }
 
       _receiveCount = data.count;
-      oppoPad.setOpponentPos(_pxMap.toDevX(1.0 - data.px));
+      final newX = _pxMap.toDevX(1.0 - data.px);
+      if (oppoPad.x > newX) {
+        oppoPad.moveLeft();
+      } else if (oppoPad.x < newX) {
+        oppoPad.moveRight();
+      } else {
+        oppoPad.setStationary();
+      }
+      oppoPad.setX(newX);
 
       if (data.by > 0.8 && data.bvy < 0 && ball.vy < 0) {
         // ball Y direction changed, opponent must have detected hit, play Pop
