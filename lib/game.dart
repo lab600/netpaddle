@@ -27,7 +27,6 @@ import 'package:flutter/material.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:synchronized/synchronized.dart';
-import 'name_generator.dart';
 import 'pixel_mapper.dart';
 import 'constants.dart';
 import 'pad.dart';
@@ -128,7 +127,6 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
         ? null
         : GameNetSvc(
             addressIPv4,
-            NameGenerator.genNewName(addressIPv4),
             _onDiscovery,
           );
   }

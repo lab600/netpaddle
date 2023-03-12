@@ -22,6 +22,7 @@ import 'package:bonsoir/bonsoir.dart';
 import 'package:cryptography_flutter/cryptography_flutter.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:convert/convert.dart';
+import 'package:netpaddle/name_generator.dart';
 
 /// Game Data to pack and send, or receive and unpack for networking.
 ///
@@ -99,7 +100,8 @@ class GameNetSvc {
 
   static final Cipher crypto = FlutterAesGcm(secretKeyLength: 32);
 
-  final String myName;
+  String _myName = "";
+  String get myName => _myName;
   Uint8List? _gameNonce;
   SecretKey? _secretKey;
   BonsoirService? _mySvc; // network game I am hosting
@@ -111,7 +113,7 @@ class GameNetSvc {
   String? _oppoName;
   RawDatagramSocket? _sock;
 
-  GameNetSvc(Uint8List addressIPv4, this.myName, this._onDiscovery) {
+  GameNetSvc(Uint8List addressIPv4, this._onDiscovery) {
     try {
       _myAddress = InternetAddress.fromRawAddress(addressIPv4);
     } catch (e) {
@@ -155,6 +157,9 @@ class GameNetSvc {
   Future<void> startHosting(Function(GameNetData p) onMsg, Function() onDone) async {
     _safeCloseSocket();
     await _safeStopBroadcast();
+
+    _myName = NameGenerator.genNewName(_myAddress!.rawAddress, knownNames: _host2svc.keys);
+
     final addrLastByte = _myAddress!.rawAddress.last;
     _gameNonce = Uint8List.fromList(enableCrypto ? crypto.newNonce() : [0, 0, 0, 0]);
     _secretKey = await crypto.newSecretKey();
@@ -194,6 +199,7 @@ class GameNetSvc {
   Future<void> stopHosting() async {
     log.info("Stop Hosting game as $myName...");
     _safeCloseSocket();
+    await _safeStopBroadcast();
   }
 
   Future<void> joinGame(
