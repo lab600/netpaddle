@@ -15,6 +15,7 @@
 // specific language governing permissions and limitations
 // under the License.
 
+import 'dart:collection';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:logging/logging.dart';
@@ -99,6 +100,7 @@ class GameNetSvc {
   static final log = Logger("GameNetSvc");
 
   static final Cipher crypto = FlutterAesGcm(secretKeyLength: 32);
+  static const maxHosts = 10;
 
   String _myName = "";
   String get myName => _myName;
@@ -106,7 +108,8 @@ class GameNetSvc {
   SecretKey? _secretKey;
   BonsoirService? _mySvc; // network game I am hosting
   BonsoirBroadcast? _myBroadcast;
-  final Map<String, ResolvedBonsoirService> _host2svc = {}; // other hosts
+  // other hosts by discovered order
+  final _host2svc = LinkedHashMap<String, ResolvedBonsoirService>.from({});
   final Function _onDiscovery;
   InternetAddress? _myAddress;
   InternetAddress? _oppoAddress;
@@ -142,6 +145,11 @@ class GameNetSvc {
           if (e.type == BonsoirDiscoveryEventType.discoveryServiceResolved) {
             log.info("Found service at ${e.service!.name}...");
             _host2svc[e.service!.name] = (e.service) as ResolvedBonsoirService;
+            while (_host2svc.length > maxHosts) {
+              final oldestName = _host2svc.entries.first.key;
+              _host2svc.remove(oldestName);
+              log.info("Too many hosts visible, trim oldest: $oldestName");
+            }
             _onDiscovery();
           } else if (e.type == BonsoirDiscoveryEventType.discoveryServiceLost) {
             log.info("Lost service at ${e.service!.name}...");

@@ -55,7 +55,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
   static const maxNetWait = Duration(seconds: 5); // opponent disconnected
   static const hitWait = Duration(milliseconds: 60); // guard repeated hits
   static const maxSendGap = 0.01; // max of 100 network update/sec
-  static const inset = EdgeInsets.symmetric(vertical: 15.0);
+  static const inset = EdgeInsets.symmetric(vertical: 10.0);
 
   static final backgroundSongAsset = AssetSource(backgroundFile);
   static final gameSongAsset = AssetSource(playFile);
@@ -145,6 +145,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
         AudioContextConfig(forceSpeaker: false).build(),
       );
     }
+    _reset();
     startLobbySong();
     if (!kIsWeb && _netSvc == null) {
       _gameMsg = "Join Wifi to host or join network games.";
@@ -157,6 +158,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
   Future<void> onRemove() async {
     await _sndfx.stop();
     await _music.stop();
+    await _netSvc?.stopHosting();
     super.onRemove();
   }
 
@@ -197,12 +199,6 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
     _popfx.resume();
   }
 
-  // /// refresh main menu so newly detected game hosts can be displayed
-  // Future<void> refreshOverlay() async {
-  //   overlays.clear();
-  //   overlays.add(mainOverlayKey);
-  // }
-
   /// reset the game to specific mode and starting state for it.
   void _reset([GameMode mode = GameMode.over]) {
     _mode = mode;
@@ -213,7 +209,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
     ball.reset(
       normVY: bvy,
       normX: 0.5,
-      normY: 0.5,
+      normY: 0.8,
     );
     notifyListeners();
   }
@@ -226,51 +222,79 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
   }
 
   /// reusable logic to generate a Button and backing logic
-  Widget gameButton(String txt, void Function() handler) => Padding(
-        padding: inset,
-        child: SizedBox(
-          width: _pxMap.toDevWth(.7),
-          child: ElevatedButton(
-            onPressed: handler,
-            child: Text(
-              txt,
-              textAlign: TextAlign.center,
-            ),
+  Widget gameButton(
+    BuildContext ctx,
+    String txt,
+    void Function() handler, [
+    double width = .75,
+    Color? color,
+  ]) {
+    final c = color ?? Theme.of(ctx).primaryColor;
+    return Padding(
+      padding: inset,
+      child: SizedBox(
+        width: _pxMap.toDevWth(width),
+        child: ElevatedButton(
+          onPressed: handler,
+          style: ElevatedButton.styleFrom(backgroundColor: color),
+          child: Text(
+            txt,
+            textAlign: TextAlign.center,
           ),
         ),
-      );
-
-  /// widget tree for the main menu overlay
-  Widget _mainMenuOverlay(ctx, PaddleGame game) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (gameMsg.isNotEmpty)
-            Padding(
-              padding: inset,
-              child: Text(gameMsg),
-            ),
-          gameButton('Single Player', startSinglePlayer),
-
-          /// can't support hosting net game when playing in browser
-          if (!kIsWeb && _netSvc != null) gameButton('Host Network Game', hostNetGame),
-
-          /// can't support joining net game as guest when playing in browser
-          if (!kIsWeb && _netSvc != null)
-            for (var sName in _netSvc!.serviceNames)
-              gameButton(
-                'Play $sName',
-                () => joinNetGame(sName),
-              )
-        ],
       ),
     );
   }
 
+  /// widget tree for the main menu overlay
+  Widget _mainMenuOverlay(BuildContext ctx, PaddleGame game) {
+    return Center(
+        child: Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (gameMsg.isNotEmpty)
+          Padding(
+            padding: inset,
+            child: Text(gameMsg),
+          ),
+        gameButton(ctx, 'Single Player', startSinglePlayer),
+
+        /// can't support hosting net game when playing in browser
+        if (!kIsWeb && _netSvc != null)
+          gameButton(
+            ctx,
+            'Host Network Game',
+            hostNetGame,
+          ),
+
+        /// can't support joining net game as guest when playing in browser
+        if (!kIsWeb && _netSvc != null && _netSvc!.serviceNames.isNotEmpty)
+          const Padding(
+            padding: inset,
+            child: Text('Play over Network with...'),
+          ),
+
+        if (!kIsWeb && _netSvc != null && _netSvc!.serviceNames.isNotEmpty)
+          Wrap(
+            spacing: _pxMap.toDevWth(.05),
+            children: <Widget>[
+              for (var sName in _netSvc!.serviceNames)
+                gameButton(
+                  ctx,
+                  sName,
+                  () => joinNetGame(sName),
+                  .35,
+                  Colors.orange,
+                )
+            ],
+          ),
+      ],
+    ));
+  }
+
   /// widget tree for the overlay waiting for guest to join player hosted game
-  Widget _hostWaitingOverlay(ctx, PaddleGame game) {
+  Widget _hostWaitingOverlay(BuildContext ctx, PaddleGame game) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -280,13 +304,13 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
             padding: const EdgeInsets.symmetric(vertical: 20.0),
             child: Text('Hosting Game as ${_netSvc!.myName}...'),
           ),
-          gameButton('Cancel', stopHosting),
+          gameButton(ctx, 'Cancel', stopHosting),
         ],
       ),
     );
   }
 
-  Widget overlayBuilder(ctx, PaddleGame g) {
+  Widget overlayBuilder(BuildContext ctx, PaddleGame g) {
     final consumer = Consumer<PaddleGame>(
       builder: (context, game, child) => game.isOver
           ? _mainMenuOverlay(context, game)
