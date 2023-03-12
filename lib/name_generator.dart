@@ -19,6 +19,8 @@ import 'dart:math';
 
 import 'dart:typed_data';
 
+import 'package:logging/logging.dart';
+
 /// Name Generator uses IP address or randomly generate a name for player
 class NameGenerator {
   static const List<String> animalNames = [
@@ -137,11 +139,26 @@ class NameGenerator {
     'Lonely'
   ];
 
-  static String genNewName(Uint8List? addressByteIPv4) {
+  static final log = Logger("NameGenerator");
+
+  static String genNewName(
+    Uint8List? addressByteIPv4, {
+    Iterable<String> knownNames = const {},
+  }) {
     final seed = addressByteIPv4 == null ? 0 : addressByteIPv4.last;
     final rng = Random(seed);
     final int animalIdx = rng.nextInt(animalNames.length);
     final int adjIdx = rng.nextInt(adjectives.length);
-    return '${adjectives[adjIdx]} ${animalNames[animalIdx]}';
+    String newName;
+    bool isUnique = true;
+    do {
+      newName = '${adjectives[adjIdx]} ${animalNames[animalIdx]}';
+      isUnique = !knownNames.contains(newName);
+      if (!isUnique) {
+        log.warning("$newName is already used by others: $knownNames");
+      }
+    } while (!isUnique);
+
+    return newName;
   }
 }
