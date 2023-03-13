@@ -73,16 +73,21 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
   final _music = AudioPlayer()
     ..setPlayerMode(PlayerMode.mediaPlayer)
     ..setReleaseMode(ReleaseMode.loop);
+
+  final _sndfx = AudioPlayer()
+    ..setPlayerMode(PlayerMode.lowLatency)
+    ..setReleaseMode(ReleaseMode.stop);
+
+  // on mobile need to retained pop & crash then resumed for consistent firing
+  // but web seems to only support 2 players only, so these not used
   final _popfx = AudioPlayer()
     ..setSource(popAsset)
     ..setPlayerMode(PlayerMode.mediaPlayer)
     ..setReleaseMode(ReleaseMode.stop);
+
   final _crashfx = AudioPlayer()
     ..setSource(crashAsset)
     ..setPlayerMode(PlayerMode.mediaPlayer)
-    ..setReleaseMode(ReleaseMode.stop);
-  final _sndfx = AudioPlayer()
-    ..setPlayerMode(PlayerMode.lowLatency)
     ..setReleaseMode(ReleaseMode.stop);
 
   late final GameNetSvc? _netSvc;
@@ -191,12 +196,20 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
 
   /// Play Crash Sound Effect
   Future<void> playCrashSound() async {
-    _crashfx.resume();
+    if (kIsWeb) {
+      _sndfx.play(crashAsset);
+    } else {
+      _crashfx.resume();
+    }
   }
 
   /// Play Pop Sound Effect
   Future<void> playPopSound() async {
-    _popfx.resume();
+    if (kIsWeb) {
+      _sndfx.play(popAsset);
+    } else {
+      _popfx.resume();
+    }
   }
 
   /// reset the game to specific mode and starting state for it.
@@ -236,7 +249,7 @@ class PaddleGame extends FlameGame with HorizontalDragDetector, SingleGameInstan
         width: _pxMap.toDevWth(width),
         child: ElevatedButton(
           onPressed: handler,
-          style: ElevatedButton.styleFrom(backgroundColor: color),
+          style: ElevatedButton.styleFrom(backgroundColor: c),
           child: Text(
             txt,
             textAlign: TextAlign.center,
